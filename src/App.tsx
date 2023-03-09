@@ -8,7 +8,7 @@ import Layout from './components/Layout'
 const App: React.FC = () => {
 
 	return (
-		<BrowserRouter>
+		<BrowserRouter basename="/giphy">
 			<Routes>
 				<Route path="/" element={<Layout/>}>
 					<Route index element={<Search/>}/>
