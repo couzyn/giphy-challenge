@@ -1,9 +1,9 @@
 import styled from 'styled-components'
-import React, { useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store'
-import { setSearch } from '../store/search'
+import { setSearch, showMore, setTotalPages, setActivePage } from '../store/search'
 import { API_KEY, BASE_URL } from '../util/api'
 
 import EmpyState from '../components/EmptyState'
@@ -66,6 +66,20 @@ const Results = styled.div`
 
   `
 
+const ShowMoreButton = styled.button`
+  background: var(--background);
+  color: var(--accent);
+  border: solid var(--accent);
+  border-radius: 15px;
+  padding: .75rem 1.75rem;
+  margin: 2rem auto;
+  cursor: pointer;
+	&:hover {
+		color: var(--background);
+ 		background: var(--accent);
+	}
+`
+
 
 const Search: React.FC = () => {
 
@@ -73,33 +87,60 @@ const Search: React.FC = () => {
 	const searchField = useRef<HTMLInputElement>(null)
 	const searchResults = useSelector((state: RootState) => state.search.gifs)
 	const searchQuery = useSelector((state: RootState) => state.search.query)
+	const activePage = useSelector((state: RootState) => state.search.activePage)
+	const totalPages = useSelector((state: RootState) => state.search.totalPages)
 
+	const REQUEST_LIMIT = 50
 
-	const handleSearch = async (e: React.FormEvent) => {
-		e.preventDefault()
-		if (searchField.current?.value !== searchQuery && searchField.current?.value) {
-			const query = searchField.current?.value
-			try {
-				const response = await axios.get(`${BASE_URL}/search?q=${query}&api_key=${API_KEY}&bundle=fixed_height`)
-				const mappedData = response.data.data.map(((r:any) => {
-					return {
-						id: r.id,
-						title: r.title,
-						image: r.images.fixed_height,
-					}
-				}))
-				dispatch(setSearch({ query: query, gifs: mappedData }))
-			}
-			catch (error) {
-				console.log(error)
-			}
+	useEffect(() => {
+		if(activePage > 0) handleShowMore()
+	}, [activePage])
+
+	const fetchData = async (query:string, offset:number) => {
+		try {
+			const response = await axios.get(`${BASE_URL}/search?q=${query}&api_key=${API_KEY}&bundle=fixed_height&limit=${REQUEST_LIMIT}&offset=${offset}`)
+			dispatch(setTotalPages(Math.floor(response.data.pagination.total_count / REQUEST_LIMIT)))
+			const mappedData = response.data.data.map(((r:any) => {
+				return {
+					id: r.id,
+					title: r.title,
+					image: r.images.fixed_height,
+				}
+			}))
+			return mappedData
+		}
+		catch (error) {
+			console.error(error)
+		}
+
+	}
+
+	const handleSearch = async () => {
+		if (searchField.current?.value && searchField.current.value != searchQuery) {
+			const query = searchField.current.value
+			const response = await fetchData(query, 0)
+			dispatch(setSearch({ query: query, gifs: response }))
 		}
 	}
+
+	const handleShowMore = async () => {
+		const response = await fetchData(searchQuery, REQUEST_LIMIT * activePage)
+		dispatch(showMore(response))
+	}
+
 
 	const renderResults = () => {
 		if(!searchQuery) return
 		if(searchResults.length) return <GifGrid gifs={searchResults} />
 		else return <EmpyState emptyMessage="Looks pretty empty here. There are no results for your search!" />
+	}
+
+	const renderShowMoreButton = () => {
+
+		if(totalPages > 1 && activePage < totalPages) 
+			return <ShowMoreButton onClick={() => dispatch(setActivePage(activePage+1))}> show more </ShowMoreButton> 
+
+
 	}
 
 	return (
@@ -110,7 +151,7 @@ const Search: React.FC = () => {
 
 			<Form onSubmit={(e) => e.preventDefault()}>
 				<Input autoComplete="off" ref={searchField} type="text" name="search-query" id="search-query" placeholder="Funny Cats" aria-label="Search term" />
-				<Input onClick={(e) => handleSearch(e)} type="submit" value="Search" aria-label="search" />
+				<Input onClick={() => {handleSearch()}} type="submit" value="Search" aria-label="search" />
 			</Form>
 
 			<Results>
@@ -121,6 +162,8 @@ const Search: React.FC = () => {
 					renderResults()
 				}
 			</Results>
+
+			{renderShowMoreButton()}
 		</section>
 	)
 }

@@ -22,6 +22,8 @@ cursor: pointer;
 max-width: 100%;
 
 img.gif {
+  background: var(--text-transparent);
+
     animation: ${fadeIn} 4s forwards;
 	  animation-timing-function: cubic-bezier(.075,.82,.165,1);
     max-width: 100%;

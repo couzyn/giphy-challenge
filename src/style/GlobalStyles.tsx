@@ -13,6 +13,7 @@ const GlobalStyle = createGlobalStyle`
     --background: #141414;
     --background-transparent: #141414d3;
     --text: #e2e2e2;
+    --text-transparent: #e2e2e229;
     --accent: #4E5CFF; 
    
     // Layout
@@ -57,7 +58,7 @@ nav a:focus {
       outline: none;
 }
 
-input {
+input, button {
   font-family: 'Unbounded', sans-serif;
 }
 `
